@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A private, browser-based image editor for cropping and patching visible areas.">
+<meta name="theme-color" content="#101412">
+<title>Stillroom — Image cleanup, made simple</title>
+<style>
+:root{color-scheme:dark;--bg:#101412;--panel:#171d19;--panel2:#1d2520;--ink:#f2f4ef;--muted:#a3ada4;--line:#303a33;--lime:#c8f36a;--radius:18px;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:15px}
+a{color:inherit}
+button,input,select{font:inherit}
+button,select,.action{border:1px solid var(--line);background:var(--panel2);color:var(--ink);padding:11px 15px;border-radius:11px;font-weight:650;transition:background .18s,border-color .18s,transform .18s}
+button,.action{cursor:pointer}
+button:hover,.action:hover{border-color:#71806e;background:#27322a}
+button:active,.action:active{transform:translateY(1px)}
+button:disabled{opacity:.55;cursor:wait}
+:focus-visible{outline:3px solid var(--lime);outline-offset:3px}
+.primary{background:var(--lime);border-color:var(--lime);color:#162010}
+.primary:hover{background:#d7ff88;border-color:#d7ff88}
+header{border-bottom:1px solid rgba(255,255,255,.07);background:rgba(16,20,18,.86);position:sticky;top:0;z-index:5;backdrop-filter:blur(16px)}
+nav,main,footer{width:min(1120px,calc(100% - 48px));margin:auto}
+nav{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:72px}
+.brand{display:flex;gap:11px;align-items:center;text-decoration:none;font-weight:760;letter-spacing:-.025em;white-space:nowrap}
+.mark{display:grid;place-items:center;background:var(--lime);color:#192211;width:34px;height:34px;border-radius:11px;font-size:18px}
+nav>a:last-child{font-size:13px;color:var(--muted);text-decoration:none}
+nav>a:last-child:hover{color:var(--lime)}
+.hero{display:grid;grid-template-columns:.94fr 1.06fr;gap:64px;align-items:center;padding:82px 0 60px}
+.eyebrow{display:flex;align-items:center;gap:9px;color:var(--lime);font-size:12px;letter-spacing:.13em;text-transform:uppercase;font-weight:750;margin:0 0 20px}
+.eyebrow:before{content:"";width:20px;height:1px;background:currentColor}
+h1{font-size:clamp(46px,6.3vw,78px);letter-spacing:-.075em;line-height:.98;margin:0 0 22px;max-width:520px}
+.hero p{color:var(--muted);font-size:17px;line-height:1.7;max-width:430px;margin:0}
+.trust{display:flex;flex-wrap:wrap;gap:17px;margin-top:27px;color:#c2cbc2;font-size:12px}
+.trust span{display:flex;align-items:center;gap:7px}
+.trust span:before{content:"✓";color:var(--lime);font-weight:800}
+.drop{border:1px solid var(--line);border-radius:22px;background:linear-gradient(145deg,#1b231e,#141a16);padding:14px;min-width:0;box-shadow:0 24px 80px rgba(0,0,0,.24)}
+.target{border:1px dashed #49554b;border-radius:14px;min-height:280px;display:grid;justify-items:center;align-content:center;gap:12px;text-align:center;padding:24px;transition:background .18s,border-color .18s}
+.drop.active .target{border-color:var(--lime);background:rgba(200,243,106,.07)}
+.upload-icon{display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:#29352b;color:var(--lime);font-size:25px;margin-bottom:4px}
+.target strong{font-size:19px;letter-spacing:-.03em}
+.target small,.drop-note{color:var(--muted);font-size:12px}
+.drop-note{margin:13px 5px 2px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.link-button{border:0;background:none;color:var(--lime);padding:4px 0;text-decoration:underline;text-underline-offset:3px}
+[hidden]{display:none!important}
+#status{color:#dce7dc;margin:0 0 16px;padding:12px 15px;border:1px solid var(--line);border-radius:12px;background:var(--panel);font-size:13px}
+#status:empty{display:none}
+#editor{margin-bottom:72px;padding:24px;border:1px solid var(--line);background:var(--panel);border-radius:var(--radius);box-shadow:0 20px 70px rgba(0,0,0,.16);scroll-margin-top:95px}
+.editor-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
+h2{margin:0 0 7px;letter-spacing:-.05em;font-size:28px}
+#editor p,.info p{line-height:1.6;color:var(--muted);margin:0}
+.editor-subtitle{font-size:13px}
+.local-badge{display:flex;align-items:center;gap:7px;background:#222c24;border:1px solid #354439;color:#d4e4d3;padding:8px 11px;border-radius:99px;font-size:11px;white-space:nowrap}
+.local-badge:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--lime);box-shadow:0 0 12px rgba(200,243,106,.6)}
+.toolbar,.settings,.actions{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:0 0 17px}
+.toolbar button{font-size:13px}
+.toolbar button[aria-pressed=true]{background:#2c3c2b;border-color:#8ba85c;color:var(--lime)}
+#reset{margin-left:auto;color:#c1cbc2}
+.settings{padding:13px 14px;border:1px solid var(--line);background:#131815;border-radius:12px}
+.settings label,.actions label{display:flex;gap:8px;align-items:center;color:#c5cec5;font-size:12px}
+.settings input{width:min(150px,30vw);accent-color:var(--lime)}
+.settings output{font-variant-numeric:tabular-nums;color:var(--muted)}
+.previews{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:17px}
+figure{min-width:0;margin:0}
+figcaption{display:flex;justify-content:space-between;align-items:center;font-weight:650;font-size:13px;margin:0 2px 9px}
+figcaption span{color:var(--muted);font-weight:450;font-size:11px}
+.frame{min-height:170px;display:grid;place-items:center;background-color:#131815;background-image:linear-gradient(45deg,#1b211d 25%,transparent 25%),linear-gradient(-45deg,#1b211d 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#1b211d 75%),linear-gradient(-45deg,transparent 75%,#1b211d 75%);background-size:18px 18px;background-position:0 0,0 9px,9px -9px,-9px 0;border:1px solid var(--line);border-radius:13px;overflow:hidden}
+canvas{display:block;width:auto;max-width:100%;max-height:500px;object-fit:contain}
+#source{cursor:crosshair;touch-action:none}
+.actions{margin:0;justify-content:flex-end}
+.actions label{margin-right:auto}
+.actions select{padding:10px 12px}
+.report{margin:0 0 18px;border:1px solid var(--line);border-radius:13px;overflow:hidden;background:#141916}
+.report-title{padding:13px 15px;border-bottom:1px solid var(--line);font:12px ui-monospace,SFMono-Regular,Consolas,monospace;color:#c3cdc4}
+.report-title:before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:#c8f36a;margin-right:9px;box-shadow:14px 0 #e9b64b,28px 0 #e86a63}
+.report-scroll{overflow-x:auto}
+.report table{width:100%;border-collapse:collapse;min-width:620px;text-align:left;font-size:12px}
+.report th,.report td{padding:12px 15px;border-bottom:1px solid var(--line)}
+.report th{color:#9eaaa0;font-size:10px;text-transform:uppercase;letter-spacing:.07em;font-weight:650;background:#191f1b}
+.report td{color:#b9c3ba}
+.report td:first-child{color:var(--ink);font-weight:620}
+.report tr:last-child td{border-bottom:0}
+.report-note{padding:11px 15px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;line-height:1.55}
+.report .not-checked{display:inline-block;padding:5px 8px;border:1px solid #554b32;border-radius:999px;color:#e3c985;background:#2c281e}
+.info{border-top:1px solid var(--line);display:grid;grid-template-columns:1fr auto;align-items:center;gap:24px;padding:30px 0 42px}
+.info p{max-width:720px;font-size:13px}
+.action{text-decoration:none;white-space:nowrap;font-size:13px}
+footer{border-top:1px solid var(--line);padding:22px 0 28px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;gap:16px}
+@media(max-width:780px){.hero{grid-template-columns:1fr;gap:30px;padding:54px 0 42px}.hero-copy{max-width:620px}.hero p{max-width:570px}.info{grid-template-columns:1fr}.action{justify-self:start}}
+@media(max-width:560px){nav,main,footer{width:calc(100% - 30px)}nav{min-height:62px}.hero{padding-top:42px}h1{font-size:clamp(43px,13vw,64px)}.hero p{font-size:15px}.drop{padding:10px;border-radius:17px}.target{min-height:240px;padding:18px}.previews{grid-template-columns:1fr}.frame{min-height:140px}#editor{padding:16px;margin-bottom:48px}.editor-head{display:block}.local-badge{display:inline-flex;margin-top:13px}.toolbar{gap:7px}.toolbar button{padding:10px 11px}#reset{margin-left:0}.settings{align-items:flex-start;flex-direction:column}.settings label{width:100%;justify-content:space-between}.settings input{width:50%}.actions{justify-content:stretch}.actions label{width:100%;justify-content:space-between;margin:0}.actions select{flex:1}.actions button{width:100%}footer{flex-direction:column}}
+</style>
+</head>
+<body>
+<header><nav><a class="brand" href="#" aria-label="Stillroom home"><span class="mark" aria-hidden="true">✳</span>stillroom</a><a href="#verification">About this tool</a></nav></header>
+<main>
+<section class="hero" aria-labelledby="title">
+<div class="hero-copy"><p class="eyebrow">A little room to refine</p><h1 id="title">Image cleanup, made simple.</h1><p>Crop to your favorite frame or patch a visible mark with nearby pixels. Everything happens right here in your browser.</p><div class="trust"><span>No upload</span><span>No account</span><span>Your file stays yours</span></div></div>
+<div class="drop" id="drop">
+<div class="target"><span class="upload-icon" aria-hidden="true">↥</span><strong>Drop an image to get started</strong><small>PNG, JPEG, or WebP · up to 25 MB</small><button class="primary" id="browse" type="button">Choose an image</button><input id="upload" type="file" accept="image/png,image/jpeg,image/webp" hidden></div>
+<div class="drop-note"><span>Private by design · processed locally</span><span>Drop or choose an image</span></div>
+</div>
+</section>
+<p id="status" role="status"></p>
+<section id="editor" aria-labelledby="editor-title" hidden>
+<div class="editor-head"><div><h2 id="editor-title">Make it yours</h2><p class="editor-subtitle" id="instructions"></p></div><span class="local-badge">On-device editing</span></div>
+<div class="toolbar"><button id="patch" type="button" aria-pressed="true">Patch visible area</button><button id="crop" type="button" aria-pressed="false">Crop image</button><button id="reset" type="button">Reset selection</button></div>
+<div class="settings" id="offsets">
+<label>Patch source · horizontal <input type="range" id="left" min="0" value="0"><output id="left-value">0</output></label>
+<label>Patch source · vertical <input type="range" id="top" min="0" value="0"><output id="top-value">0</output></label>
+</div>
+<div class="previews">
+<figure><figcaption>Original <span>Drag to select an area</span></figcaption><div class="frame"><canvas id="source" tabindex="0" aria-label="Original image. Use arrow keys to move the selection and Shift with arrow keys to resize it."></canvas></div></figure>
+<figure><figcaption>Preview <span id="size"></span></figcaption><div class="frame"><canvas id="preview" aria-label="Edited image preview"></canvas></div></figure>
+</div>
+<div class="report" aria-labelledby="report-title">
+<div class="report-title" id="report-title">ON-DEVICE CHECK · PREVIEW</div>
+<div class="report-scroll"><table>
+<thead><tr><th scope="col">Check</th><th scope="col">Original file</th><th scope="col">Edited preview</th></tr></thead>
+<tbody>
+<tr><td>File details</td><td id="original-details">Waiting for image</td><td id="preview-details">Not ready</td></tr>
+<tr><td>Image decoding</td><td id="decode-check">Not checked</td><td id="render-check">Not ready</td></tr>
+<tr><td>Visible pixels</td><td>Original as selected</td><td id="edit-details">Patch preview</td></tr>
+<tr><td>Embedded SynthID</td><td><span class="not-checked">Not supported</span></td><td><span class="not-checked">Not supported</span></td></tr>
+<tr><td>C2PA credentials</td><td><span class="not-checked">Not inspected</span></td><td><span class="not-checked">Not verified</span></td></tr>
+<tr><td>AI / platform detection</td><td><span class="not-checked">Not available</span></td><td><span class="not-checked">Not available</span></td></tr>
+</tbody></table></div>
+<div class="report-note">The local check validates file size, supported format, browser decoding, and image dimensions. It does not inspect pixel watermarks or verify provenance. Canvas exports are newly encoded and may not preserve embedded metadata or credentials.</div>
+</div>
+<div class="actions"><label>Format <select id="format"><option value="image/png">PNG</option><option value="image/jpeg">JPEG</option><option value="image/webp">WebP</option></select></label><button class="primary" id="download" type="button">Download edited image</button></div>
+</section>
+<section class="info" id="verification">
+<div><h2>What this editor does</h2><p>Stillroom helps with visible edits—cropping and copying a selected patch from elsewhere in the image. It does not detect or remove embedded SynthID, C2PA credentials, or other provenance signals.</p></div>
+<a class="action" href="https://deepmind.google/technologies/synthid/" target="_blank" rel="noopener noreferrer">About SynthID ↗</a>
+</section>
+</main>
+<footer><span>© 2026 stillroom</span><span>Images are edited locally and are not uploaded.</span></footer>
+<script>
+"use strict";
+const get = (id) => document.getElementById(id);
+const original = document.createElement("canvas");
+const source = get("source");
+const preview = get("preview");
+const status = get("status");
+const left = get("left");
+const topSlider = get("top");
+let selection;
+let anchor;
+let formatMode = "patch";
+let fileStem = "image";
+let inputFile;
+let revision = 0;
+
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+function resetSelection() {
+  const { width, height } = original;
+  if (formatMode === "crop") {
+    selection = { x: 0, y: 0, width, height };
+  } else {
+    const boxWidth = Math.max(1, Math.round(width * .22));
+    const boxHeight = Math.max(1, Math.round(height * .17));
+    selection = {
+      x: Math.max(0, Math.round(width * .75)),
+      y: Math.max(0, Math.round(height * .80)),
+      width: boxWidth,
+      height: boxHeight
+    };
+    selection.x = Math.min(selection.x, width - boxWidth);
+    selection.y = Math.min(selection.y, height - boxHeight);
+  }
+  setPatchOrigin();
+  render();
+}
+
+function setPatchOrigin() {
+  const { x, y, width, height } = selection;
+  left.max = original.width - width;
+  topSlider.max = original.height - height;
+  left.value = clamp(x - width - Math.round(width * .15), 0, Number(left.max));
+  topSlider.value = clamp(y, 0, Number(topSlider.max));
+  if (Number(left.value) === x) {
+    topSlider.value = clamp(y - height, 0, Number(topSlider.max));
+  }
+}
+
+function outline(ctx, rect, color) {
+  const line = Math.max(1, Math.min(source.width, source.height) / 240);
+  ctx.lineWidth = line;
+  ctx.strokeStyle = "#15271d";
+  ctx.setLineDash([]);
+  ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+  ctx.strokeStyle = color;
+  ctx.setLineDash([line * 3, line * 2]);
+  ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+}
+
+function render() {
+  const { x, y, width, height } = selection;
+  const crop = formatMode === "crop";
+  const patchOrigin = { x: Number(left.value), y: Number(topSlider.value), width, height };
+  get("left-value").value = left.value;
+  get("top-value").value = topSlider.value;
+  const sourceContext = source.getContext("2d");
+  sourceContext.clearRect(0, 0, source.width, source.height);
+  sourceContext.drawImage(original, 0, 0);
+  if (!crop) outline(sourceContext, patchOrigin, "#83eaff");
+  outline(sourceContext, selection, "#dcfb8e");
+
+  preview.width = crop ? width : original.width;
+  preview.height = crop ? height : original.height;
+  const ctx = preview.getContext("2d");
+  if (crop) {
+    ctx.drawImage(original, x, y, width, height, 0, 0, width, height);
+  } else {
+    ctx.drawImage(original, 0, 0);
+    ctx.clearRect(x, y, width, height);
+    ctx.drawImage(original, patchOrigin.x, patchOrigin.y, width, height, x, y, width, height);
+  }
+  get("size").textContent = "· " + preview.width + " × " + preview.height;
+  get("preview-details").textContent =
+    preview.width + " × " + preview.height + " · " + get("format").selectedOptions[0].text;
+  get("render-check").textContent = "Rendered in browser";
+  get("edit-details").textContent = formatMode === "crop" ? "Crop preview" : "Patch preview";
+}
+
+function setMode(mode) {
+  formatMode = mode;
+  const crop = mode === "crop";
+  get("crop").setAttribute("aria-pressed", crop);
+  get("patch").setAttribute("aria-pressed", !crop);
+  get("offsets").hidden = crop;
+  get("instructions").textContent = crop
+    ? "Drag on the original to select the area you want to keep."
+    : "Drag the green box over a visible area to replace. Use the sliders to position the blue patch source.";
+  resetSelection();
+}
+
+function loadImage(image, width, height, name, file) {
+  original.width = source.width = width;
+  original.height = source.height = height;
+  original.getContext("2d").drawImage(image, 0, 0);
+  inputFile = file;
+  get("decode-check").textContent = "Decoded successfully";
+  fileStem = name.replace(/\.[^.]+$/, "").replace(/[<>:"\/\\|?*\u0000-\u001f]/g, "-") || "image";
+  get("original-details").textContent =
+    width + " × " + height + " · " + (inputFile?.type || "image") + " · " +
+    (inputFile ? (inputFile.size / 1024 / 1024).toFixed(2) + " MB" : "local image");
+  status.textContent = name + " · " + width + " × " + height;
+  get("editor").hidden = false;
+  setMode("patch");
+  get("editor").scrollIntoView({ block: "nearest" });
+}
+
+async function openImage(file) {
+  if (!file) return;
+  const request = ++revision;
+  inputFile = file;
+  if (file.size > 25 * 1024 * 1024) {
+    status.textContent = "Choose an image that is 25 MB or smaller.";
+    return;
+  }
+  if (!["image/png", "image/jpeg", "image/webp"].includes(file.type) &&
+      !(file.type === "" && /\.(png|jpe?g|webp)$/i.test(file.name))) {
+    status.textContent = "Choose a PNG, JPEG, or WebP image.";
+    return;
+  }
+  const url = URL.createObjectURL(file);
+  try {
+    const image = new Image();
+    image.src = url;
+    await image.decode();
+    if (request !== revision) return;
+    const { naturalWidth, naturalHeight } = image;
+    if (Math.max(naturalWidth, naturalHeight) > 8192 || naturalWidth * naturalHeight > 16000000) {
+      throw new Error("Choose an image up to 16 megapixels and 8,192 pixels per side.");
+    }
+    loadImage(image, naturalWidth, naturalHeight, file.name, file);
+  } catch (error) {
+    if (request === revision) {
+      status.textContent = error instanceof Error ? error.message : "Could not open that image.";
+    }
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function point(event) {
+  const box = source.getBoundingClientRect();
+  return {
+    x: clamp(Math.round((event.clientX - box.left) * source.width / box.width), 0, source.width - 1),
+    y: clamp(Math.round((event.clientY - box.top) * source.height / box.height), 0, source.height - 1)
+  };
+}
+
+source.addEventListener("pointerdown", (event) => {
+  if (!event.isPrimary || event.button !== 0) return;
+  anchor = point(event);
+  source.setPointerCapture(event.pointerId);
+});
+source.addEventListener("pointermove", (event) => {
+  if (!anchor || !source.hasPointerCapture(event.pointerId)) return;
+  const current = point(event);
+  selection = {
+    x: Math.min(anchor.x, current.x),
+    y: Math.min(anchor.y, current.y),
+    width: Math.abs(anchor.x - current.x) + 1,
+    height: Math.abs(anchor.y - current.y) + 1
+  };
+  setPatchOrigin();
+  render();
+});
+source.addEventListener("lostpointercapture", () => { anchor = null; });
+source.addEventListener("keydown", (event) => {
+  const dx = Number(event.key === "ArrowRight") - Number(event.key === "ArrowLeft");
+  const dy = Number(event.key === "ArrowDown") - Number(event.key === "ArrowUp");
+  if (!dx && !dy) return;
+  event.preventDefault();
+  const step = event.altKey ? 1 : 10;
+  const bounds = original;
+  if (event.shiftKey) {
+    selection.width = clamp(selection.width + dx * step, 1, bounds.width - selection.x);
+    selection.height = clamp(selection.height + dy * step, 1, bounds.height - selection.y);
+  } else {
+    selection.x = clamp(selection.x + dx * step, 0, bounds.width - selection.width);
+    selection.y = clamp(selection.y + dy * step, 0, bounds.height - selection.height);
+  }
+  setPatchOrigin();
+  render();
+});
+
+get("browse").onclick = () => get("upload").click();
+get("upload").onchange = (event) => {
+  openImage(event.target.files[0]);
+  event.target.value = "";
+};
+const drop = get("drop");
+drop.ondragover = (event) => { event.preventDefault(); drop.classList.add("active"); };
+drop.ondragleave = (event) => {
+  if (!drop.contains(event.relatedTarget)) drop.classList.remove("active");
+};
+drop.ondrop = (event) => {
+  event.preventDefault();
+  drop.classList.remove("active");
+  openImage(event.dataTransfer.files[0]);
+};
+document.addEventListener("paste", (event) => {
+  const file = Array.from(event.clipboardData?.files || []).find((item) => item.type.startsWith("image/"));
+  if (file) {
+    event.preventDefault();
+    openImage(file);
+  }
+});
+get("patch").onclick = () => setMode("patch");
+get("crop").onclick = () => setMode("crop");
+get("reset").onclick = resetSelection;
+left.oninput = topSlider.oninput = render;
+get("format").onchange = render;
+
+get("download").onclick = () => {
+  const button = get("download");
+  const mime = get("format").value;
+  const name = fileStem;
+  button.disabled = true;
+  try {
+    const exportCanvas = document.createElement("canvas");
+    exportCanvas.width = preview.width;
+    exportCanvas.height = preview.height;
+    const exportContext = exportCanvas.getContext("2d");
+    if (mime === "image/jpeg") {
+      exportContext.fillStyle = "#fff";
+      exportContext.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+    }
+    exportContext.drawImage(preview, 0, 0);
+    exportCanvas.toBlob((blob) => {
+      button.disabled = false;
+      if (!blob || blob.type !== mime) {
+        status.textContent = "This export format is unavailable in your browser. Try PNG.";
+        return;
+      }
+      const suffix = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" }[mime];
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = name + "-edited." + suffix;
+      link.click();
+      status.textContent = "Your edited image is ready to save.";
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+    }, mime, .95);
+  } catch (error) {
+    button.disabled = false;
+    status.textContent = error instanceof Error ? error.message : "Could not export this image.";
+  }
+};
+</script>
+</body>
+</html>
